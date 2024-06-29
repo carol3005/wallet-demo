@@ -33,7 +33,7 @@ public class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(java.util.Optional.of(wallet));
         when(walletRepository.save(wallet)).thenReturn(wallet);
 
-        Wallet updatedWallet = walletService.addAmount(1L, BigDecimal.valueOf(100));
+        Wallet updatedWallet = walletService.depositAmount(1L, BigDecimal.valueOf(100));
 
         assertEquals(BigDecimal.valueOf(100), updatedWallet.getBalance());
     }

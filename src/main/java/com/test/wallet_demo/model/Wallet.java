@@ -1,5 +1,6 @@
 package com.test.wallet_demo.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,5 +16,8 @@ public class Wallet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private BigDecimal balance;
+
+    @OneToMany(mappedBy = "wallet", orphanRemoval = true)
+    @JsonManagedReference
     private List<Transaction> transactions;
 }

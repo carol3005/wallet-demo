@@ -1,14 +1,17 @@
 package com.test.wallet_demo.service;
 
 import com.test.wallet_demo.model.Transaction;
+import com.test.wallet_demo.model.TransactionType;
 import com.test.wallet_demo.model.Wallet;
 import com.test.wallet_demo.repository.TransactionRepository;
 import com.test.wallet_demo.repository.WalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -25,28 +28,94 @@ public class WalletService {
     public Wallet createWallet() {
         Wallet wallet = new Wallet();
         wallet.setBalance(BigDecimal.ZERO);
+        wallet.setTransactions(new ArrayList<>());
         return walletRepository.save(wallet);
     }
 
     @Transactional
-    public Wallet addAmount(Long walletId, BigDecimal amount) {
+    public Wallet depositAmount(Long walletId, BigDecimal amount) {
         Wallet wallet = walletRepository.findById(walletId).orElseThrow();
         wallet.setBalance(wallet.getBalance().add(amount));
-        walletRepository.save(wallet);
-
-        Transaction transaction = new Transaction();
-        transaction.setAmount(amount);
-        transaction.setType("ADD");
-        transaction.setDate(new Date());
-        transaction.setDescription("Adding amount");
+        Transaction transaction = createTransaction(wallet, amount, TransactionType.DEPOSIT, "Adding amount");
+        wallet.getTransactions().add(transaction);
         transactionRepository.save(transaction);
+        walletRepository.save(wallet);
 
         return wallet;
     }
 
-    // Implement other methods for withdrawal, purchases, cancellation, refund, etc.
+    @Transactional
+    public Wallet withdrawAmount(Long walletId, BigDecimal amount) throws Exception {
+        Wallet wallet = walletRepository.findById(walletId).orElseThrow();
+        if (amount.compareTo(wallet.getBalance()) < 0) {
+            wallet.setBalance(wallet.getBalance().subtract(amount));
+            Transaction transaction = createTransaction(wallet, amount, TransactionType.WITHDRAWAL, "Withdrawing amount");
+            wallet.getTransactions().add(transaction);
+            transactionRepository.save(transaction);
+            walletRepository.save(wallet);
+        } else {
+            throw new Exception("Transação não autorizada. Seu saldo é insuficiente.");
+        }
+        return wallet;
+    }
+
+    @Transactional
+    public Wallet makePurchase(Long walletId, BigDecimal amount, String description) throws Exception {
+        Wallet wallet = walletRepository.findById(walletId).orElseThrow();
+        if (amount.compareTo(wallet.getBalance()) < 0) {
+            wallet.setBalance(wallet.getBalance().subtract(amount));
+            Transaction transaction = createTransaction(wallet, amount, TransactionType.PURCHASE, description);
+            wallet.getTransactions().add(transaction);
+            transactionRepository.save(transaction);
+            walletRepository.save(wallet);
+        } else {
+            throw new Exception("Compra não autorizada. Seu saldo é insuficiente.");
+        }
+        return wallet;
+    }
+
+    @Transactional
+    public Wallet cancelTransaction(Long walletId, Long transactionId) {
+        Wallet wallet = walletRepository.findById(walletId).orElseThrow();
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
+
+        BigDecimal amount = transaction.getAmount().negate();
+        wallet.setBalance(wallet.getBalance().add(amount));
+
+        Transaction cancellation = createTransaction(wallet, amount, TransactionType.REFUND, "Cancellation of transaction " + transactionId);
+        wallet.getTransactions().add(cancellation);
+
+        transactionRepository.save(cancellation);
+        return walletRepository.save(wallet);
+    }
+
+    @Transactional
+    public Wallet refundTransaction(Long walletId, Long transactionId) {
+        Wallet wallet = walletRepository.findById(walletId).orElseThrow();
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
+
+        BigDecimal amount = transaction.getAmount().abs();
+        wallet.setBalance(wallet.getBalance().add(amount));
+
+        Transaction refund = createTransaction(wallet, amount, TransactionType.REFUND, "Refund of transaction " + transactionId);
+        wallet.getTransactions().add(refund);
+
+        transactionRepository.save(refund);
+        return walletRepository.save(wallet);
+    }
 
     public List<Transaction> getTransactions(Long walletId) {
-        return transactionRepository.findAll();
+        Wallet wallet = walletRepository.findById(walletId).orElseThrow();
+        return wallet.getTransactions();
+    }
+
+    private Transaction createTransaction(Wallet wallet, BigDecimal amount, TransactionType type, String description) {
+        Transaction transaction = new Transaction();
+        transaction.setAmount(amount);
+        transaction.setType(type);
+        transaction.setDate(new Date());
+        transaction.setDescription(description);
+        transaction.setWallet(wallet);
+        return transaction;
     }
 }

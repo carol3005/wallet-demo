@@ -1,5 +1,6 @@
 package com.test.wallet_demo.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +16,14 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private BigDecimal amount;
-    private String type;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionType type;
     private Date date;
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @JoinColumn(name = "WALLET_ID")
+    @JsonBackReference
+    private Wallet wallet;
 }
