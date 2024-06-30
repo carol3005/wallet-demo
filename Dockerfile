@@ -1,11 +1,29 @@
-# Use an official OpenJDK runtime as a parent image
-FROM openjdk:11-jre-slim
+# Use a base image with JDK 17 and Maven installed
+FROM maven:3.8.4-openjdk-17-slim AS build
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the executable JAR file to the container
-COPY target/wallet-demo-0.0.1-SNAPSHOT.jar app.jar
+# Copy the Maven project file
+COPY pom.xml .
 
-# Run the JAR file
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Copy the source code
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Use a smaller base image for runtime
+FROM openjdk:17-jdk-alpine
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the built JAR file from the build stage
+COPY --from=build /app/target/*.jar ./app.jar
+
+# Expose the port the application runs on
+EXPOSE 8081
+
+# Command to run the application
+CMD ["java", "-jar", "app.jar"]
