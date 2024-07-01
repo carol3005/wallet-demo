@@ -93,7 +93,7 @@ mvn test
 Para construir e executar o contêiner Docker:
 
 ```bash
-docker build -t wallet-demo.
+docker build -t wallet-demo
 docker run -p 8080:8080 wallet-demo
 ```
 

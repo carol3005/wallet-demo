@@ -11,7 +11,7 @@ public class SwaggerConfig {
     public GroupedOpenApi publicApi() {
         return GroupedOpenApi.builder()
                 .group("wallet-demo-public")
-                .pathsToMatch("/public/**")
+                .pathsToMatch("/wallet/**")
                 .build();
     }
 
