@@ -6,7 +6,6 @@ import com.test.wallet_demo.model.Wallet;
 import com.test.wallet_demo.repository.TransactionRepository;
 import com.test.wallet_demo.repository.WalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -79,10 +78,9 @@ public class WalletService {
         Wallet wallet = walletRepository.findById(walletId).orElseThrow();
         Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
 
-        BigDecimal amount = transaction.getAmount().negate();
-        wallet.setBalance(wallet.getBalance().add(amount));
+        wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
 
-        Transaction cancellation = createTransaction(wallet, amount, TransactionType.REFUND, "Cancellation of transaction " + transactionId);
+        Transaction cancellation = createTransaction(wallet, transaction.getAmount(), TransactionType.CANCEL, "Cancellation of transaction " + transactionId);
         wallet.getTransactions().add(cancellation);
 
         transactionRepository.save(cancellation);
@@ -94,10 +92,9 @@ public class WalletService {
         Wallet wallet = walletRepository.findById(walletId).orElseThrow();
         Transaction transaction = transactionRepository.findById(transactionId).orElseThrow();
 
-        BigDecimal amount = transaction.getAmount().abs();
-        wallet.setBalance(wallet.getBalance().add(amount));
+        wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
 
-        Transaction refund = createTransaction(wallet, amount, TransactionType.REFUND, "Refund of transaction " + transactionId);
+        Transaction refund = createTransaction(wallet, transaction.getAmount(), TransactionType.REFUND, "Refund of transaction " + transactionId);
         wallet.getTransactions().add(refund);
 
         transactionRepository.save(refund);

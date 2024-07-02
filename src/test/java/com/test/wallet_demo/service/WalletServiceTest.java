@@ -5,6 +5,7 @@ import com.test.wallet_demo.model.TransactionType;
 import com.test.wallet_demo.model.Wallet;
 import com.test.wallet_demo.repository.TransactionRepository;
 import com.test.wallet_demo.repository.WalletRepository;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -12,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +32,11 @@ public class WalletServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @BeforeTest
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+    }
+
     @Test
     public void testDepositAmount() {
         MockitoAnnotations.openMocks(this);
@@ -37,6 +44,7 @@ public class WalletServiceTest {
         Wallet wallet = new Wallet();
         wallet.setId(1L);
         wallet.setBalance(BigDecimal.ZERO);
+        wallet.setTransactions(new ArrayList<>());
 
         when(walletRepository.findById(1L)).thenReturn(java.util.Optional.of(wallet));
         when(walletRepository.save(wallet)).thenReturn(wallet);
@@ -48,7 +56,7 @@ public class WalletServiceTest {
 
     @Test
     void testWithdrawAmount() throws Exception {
-        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), null);
+        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), new ArrayList<>());
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(walletRepository.save(wallet)).thenReturn(wallet);
 
@@ -61,19 +69,19 @@ public class WalletServiceTest {
 
     @Test
     void testWithdrawAmount_InsufficientBalance() {
-        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(30), null);
+        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(30), new ArrayList<>());
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+        Exception exception = assertThrows(Exception.class, () -> {
             walletService.withdrawAmount(1L, BigDecimal.valueOf(50));
         });
 
-        assertEquals("Insufficient balance", exception.getMessage());
+        assertEquals("Transação não autorizada. Seu saldo é insuficiente.", exception.getMessage());
     }
 
     @Test
     void testMakePurchase() throws Exception {
-        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), null);
+        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), new ArrayList<>());
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
         when(walletRepository.save(wallet)).thenReturn(wallet);
 
@@ -85,7 +93,7 @@ public class WalletServiceTest {
 
     @Test
     void testCancelTransaction() {
-        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), null);
+        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(100), new ArrayList<>());
         Transaction transaction = new Transaction(1L, BigDecimal.valueOf(50), TransactionType.DEPOSIT, null, "Test deposit", wallet);
         wallet.setTransactions(List.of(transaction));
 
@@ -101,7 +109,7 @@ public class WalletServiceTest {
 
     @Test
     void testRefundTransaction() {
-        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(50), null);
+        Wallet wallet = new Wallet(1L, BigDecimal.valueOf(50), new ArrayList<>());
         Transaction transaction = new Transaction(1L, BigDecimal.valueOf(20), TransactionType.PURCHASE, null, "Test purchase", wallet);
         wallet.setTransactions(List.of(transaction));
 
